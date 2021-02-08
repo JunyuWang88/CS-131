@@ -15,7 +15,7 @@ import re
 
 PRINT_FLAG = 0
 OUTPUT_LOG_FLAG = 1
-API_KEY = 'AIzaSyDW_dZ2AHURGjAl4ahleORvrTvGwEuZuso'
+API_KEY = 'api key'
 
 valid_server_names = {"Hill": 12120, "Jaquez": 12121, "Smith": 12122, "Campbell": 12123, "Singleton": 12124}
 
