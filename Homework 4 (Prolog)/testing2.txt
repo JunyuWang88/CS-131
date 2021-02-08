@@ -1,0 +1,133 @@
+t_head([Hd|_], T) :-
+	T is Hd.
+
+tower(N, T, C) :-
+	C = counts(Top, Bottom, Left, Right),
+	length(Left, N),
+	length(Right, N),
+	length(Top, N),
+	length(Bottom, N),
+
+ 	transpose(T, TTrans),
+	length(T, N),
+  	maplist(fd_labeling, T),
+	matrixSetUp(N, T),
+	matrixSetUp(N, TTrans),	
+
+	confirm_setup(T, TTrans, Top, Bottom, Left, Right).
+
+matrixSetUp(N, [H|T]) :-
+	length(H, N),
+	fd_domain(H, 1, N),
+	fd_all_different(H),
+	matrixSetUp(N, T).
+	matrixSetUp(_, []).
+
+t_test(T) :-
+	statistics(cpu_time, _),
+	tower(5, _, counts([2,3,2,1,4], [3,1,3,3,2], [4,1,2,5,2], [2,4,2,1,2])),	
+	statistics(cpu_time, [_|Tl2]),
+	t_head(Tl2, Tl_2),
+	T is Tl_2.
+
+plain_tower(N, T, C) :-
+  	C = counts(Top, Bottom, Left, Right),
+	length(Left, N),
+	length(Right, N),
+	length(Top, N),
+	length(Bottom, N),
+
+	transpose(T, TTransP),
+  	length(T, N),
+  	matrixSetUp_Plain(T, N),
+  	matrixSetUp_Plain(TTransP, N),
+
+  	confirm_setup(T, TTransP, Top, Bottom, Left, Right).
+
+matrixSetUp_Plain(T, N) :-
+	maplist(is_uniqueR(N), T).
+
+pt_test(T) :-
+	statistics(cpu_time, _),
+	plain_tower(5, _, counts([2,3,2,1,4], [3,1,3,3,2], [4,1,2,5,2], [2,4,2,1,2])),
+	statistics(cpu_time, [_|Tl1]),
+	t_head(Tl1, Tl_1),
+	T is Tl_1.
+
+ambiguous(N, C, T1, T2) :-
+	tower(N, T2, C),
+	tower(N, T1, C),
+	T1 \= T2.
+
+speedup(P) :-
+	pt_test(T_Plain),
+	t_test(T),
+	P is T_Plain / T.
+
+confirm_setup(Tower, TransTower, Top, Bottom, Left, Right) :-
+	confirm_t(Tower, Left),
+	confirm_t(TransTower, Top),
+	maplist(reverse, Tower, TowerR),
+	maplist(reverse, TransTower, TransTowerR),
+	confirm_t(TowerR, Right),
+	confirm_t(TransTowerR, Bottom).
+
+confirm_t([], []).
+confirm_t([R|Tr], [C|Tc]) :-
+	confirm_r(0, C, 0, R),
+	confirm_t(Tr, Tc).
+
+confirm_r(R, C, _, []) :-
+	R = C.
+confirm_r(R, C, Bw, [Hd|Tl]) :-
+	(Bw < Hd -> Y is R + 1,
+	confirm_r(Y, C, Hd, Tl);
+	confirm_r(R, C, Bw, Tl)).
+
+remove(GE, [GE|Tl], Tl).
+remove(GE, [Hd|Tl], [Hd|TR]) :-
+	GE \= Hd,
+	remove(GE, Tl, TR).
+
+
+transpose([], []).
+transpose([F|Fs], Ts) :-
+	transpose(F, [F|Fs], Ts).
+
+transpose([], _, []).
+transpose([_|Rs], Ms, [Ts|Tss]) :-
+        lists_firsts_rests(Ms, Ts, Ms1),
+        transpose(Rs, Ms1, Tss).
+
+
+lists_firsts_rests([[F|Os]|Rest], [F|Fs], [Os|Oss]) :-
+        lists_firsts_rests(Rest, Fs, Oss).
+
+
+
+all_between(Mini, Maxi, Row) :-
+        maplist(between(Mini, Maxi), Row).
+
+all_unique([]).
+
+all_unique([Hd | Tl]) :-
+        member(Hd, Tl),
+        !,
+	fail.
+
+all_unique([_ | Tl]) :-
+        all_unique(Tl).
+
+rc_unique(N, M) :-
+	is_uniqueR(N, M),
+	is_uniqueC(N, M).
+
+is_uniqueR(N, Row) :- /* checks whether row is unique */
+        length(Row, N),
+        /* maplist(between(1, N), Row), */
+        all_between(1, N, Row),
+        all_unique(Row).
+
+is_uniqueC(N, M) :- /* checks whether column is unique */
+	transpose(M, MT),
+	is_uniqueR(N, MT).
